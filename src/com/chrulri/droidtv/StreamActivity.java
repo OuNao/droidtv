@@ -19,8 +19,8 @@
 package com.chrulri.droidtv;
 
 import static com.chrulri.droidtv.utils.StringUtils.NEWLINE;
-
 import android.app.Activity;
+import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -64,8 +64,9 @@ import javax.xml.parsers.ParserConfigurationException;
  * cda01aa2e0cf0999478a7dcb1d60305e5c8a7a7f
  * ;hb=350557c669ce3670b7ea1e252b11f261c0610239}
  */
+
 public class StreamActivity extends Activity {
-    private static final String TAG = StreamActivity.class.getSimpleName();
+    private static final String TAG = (StreamActivity.class.getSimpleName()+"caramba");
 
     static final int DVBLAST = R.raw.dvblast_2_1_0;
     static final int DVBLASTCTL = R.raw.dvblastctl_2_1_0;
@@ -129,11 +130,7 @@ public class StreamActivity extends Activity {
     private String mChannelName;
     private String mChannelConfig;
     private final Handler mHandler = new Handler();
-    private AsyncDvblastTask mDvblastTask;
     private AsyncDvblastCtlTask mDvblastCtlTask;
-    private AsyncStreamTask mStreamTask;
-    private DatagramSocket mUdpSocket;
-    private ServerSocket mHttpSocket;
     private VideoView mVideoView;
 
     @Override
@@ -170,13 +167,14 @@ public class StreamActivity extends Activity {
     protected void onStart() {
         Log.d(TAG, "onStart");
         super.onStart();
-        String name = startStream(mChannelConfig);
-        if (name == null) {
-            finish();
-            return;
-        }
-        mChannelName = name;
-        startPlayback();
+        Intent intent = new Intent(this, StreamService.class);
+        intent.putExtra(StreamService.EXTRA_CHANNELCONFIG, mChannelConfig);
+        removeSocketFile();
+        startService(intent);
+        mDvblastCtlTask = new AsyncDvblastCtlTask();
+        mDvblastCtlTask.execute();
+        String[] params = mChannelConfig.split(":");
+        mChannelName = params[0];
         updateTitle();
     }
 
@@ -184,132 +182,20 @@ public class StreamActivity extends Activity {
     protected void onStop() {
         Log.d(TAG, "onStop");
         super.onStop();
-        stopPlayback();
-        stopStream();
     }
-
+ 
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
+        ProcessUtils.finishTask(mDvblastCtlTask, false);
+        stopService(new Intent(this, StreamService.class));
     }
 
     /**
      * @param channelconfig
      * @return channel name
      */
-    private String startStream(String channelconfig) {
-        try {
-            Log.d(TAG, ">>> startStream(" + channelconfig + ")");
-            try {
-                removeSocketFile();
-                // config file
-                File configFile = new File(getCacheDir(), DVBLAST_CONFIG_FILENAME);
-                PrintWriter writer = new PrintWriter(configFile);
-                // sNAME/iFREQ/iServiceID
-                String[] params = channelconfig.split(":");
-                // check config length
-                if (params.length != 3) {
-                    throw new IOException("invalid DVB params count[" + params.length + "]");
-                }
-                // parse config
-                String name = params[0];
-                int freq = tryParseInt(params[1], "frequency");
-                int sid = tryParseInt(params[2], "service ID");
-                // print config
-                writer.println(String.format(DVBLAST_CONFIG_CONTENT, sid));
-                writer.close();
-                // run dvblast
-                Log.d(TAG, "dvblast(" + configFile + "," + freq + ")");
-                mUdpSocket = new DatagramSocket(UDP_PORT, Inet4Address.getByName(UDP_IP));
-                mUdpSocket.setSoTimeout(1000);
-                mHttpSocket = new ServerSocket(HTTP_PORT, 10, Inet4Address.getByName(HTTP_IP));
-                mStreamTask = new AsyncStreamTask();
-                mStreamTask.execute();
-                mDvblastTask = new AsyncDvblastTask(configFile, freq);
-                mDvblastTask.execute();
-                mDvblastCtlTask = new AsyncDvblastCtlTask();
-                mDvblastCtlTask.execute();
-                return name;
-            } catch (IOException e) {
-                Log.e(TAG, "starting stream failed", e);
-                ErrorUtils.error(this, "failed to start streaming", e);
-                return null;
-            }
-        } finally {
-            Log.d(TAG, "<<< startStream");
-        }
-    }
-
-    private void stopStream() {
-        Log.d(TAG, ">>> stopStream");
-        if (mUdpSocket != null) {
-            mUdpSocket.close();
-        }
-        if (mHttpSocket != null) {
-            try {
-                mHttpSocket.close();
-            } catch (IOException e) {
-                // nop
-            }
-        }
-        ProcessUtils.finishTask(mDvblastCtlTask, false);
-        ProcessUtils.finishTask(mStreamTask, true);
-        ProcessUtils.finishTask(mDvblastTask, true);
-        Log.d(TAG, "<<< stopStream");
-    }
-
-    private void startPlayback() {
-        mVideoView.setVideoPath(SERVICE_URL);
-        mVideoView.start();
-    }
-
-    private void stopPlayback() {
-        if (mVideoView.isPlaying()) {
-            mVideoView.stopPlayback();
-        }
-    }
-
-    class AsyncStreamTask extends ParallelTask {
-
-        final String TAG = StreamActivity.TAG + "." + AsyncStreamTask.class.getSimpleName();
-
-        @Override
-        protected void doInBackground() {
-            Log.d(TAG, ">>>");
-            byte[] data = new byte[4096];
-            DatagramPacket dataPacket = new DatagramPacket(data, data.length);
-            while (!isCancelled()) {
-                Socket client;
-                try {
-                    client = mHttpSocket.accept();
-                } catch (IOException e) {
-                    continue;
-                }
-                // TODO parse HTTP request
-                try {
-                    OutputStream out = client.getOutputStream();
-                    out.write(HTTP_HEADER.getBytes());
-                    out.flush();
-                    while (!isCancelled()) {
-                        try {
-                            mUdpSocket.receive(dataPacket);
-                            out.write(dataPacket.getData(), dataPacket.getOffset(),
-                                    dataPacket.getLength());
-                        } catch (InterruptedIOException e) {
-                            Log.w(TAG, "udp timeout");
-                            continue;
-                        } catch (SocketException e) {
-                            break;
-                        }
-                    }
-                } catch (IOException e) {
-                    Log.e(TAG, "STREAM", e);
-                }
-            }
-            Log.d(TAG, "<<<");
-        }
-    }
 
     class AsyncDvblastCtlTask extends ParallelTask {
 
@@ -416,87 +302,6 @@ public class StreamActivity extends Activity {
             return doc;
         }
 
-    }
-
-    class AsyncDvblastTask extends ParallelTask {
-        final String TAG = StreamActivity.TAG + "." + AsyncDvblastTask.class.getSimpleName();
-
-        private File mErrorLog;
-        private PrintWriter mErrorLogger;
-        private File mConfigFile;
-        private int mFreq;
-
-        public AsyncDvblastTask(File configFile, int freq) {
-            mConfigFile = configFile;
-            mFreq = freq;
-            mErrorLog = new File(getCacheDir(), DVBLAST_LOG);
-            try {
-                mErrorLogger = new PrintWriter(mErrorLog);
-            } catch (FileNotFoundException e) {
-                Log.wtf(TAG, "error logger", e);
-            }
-        }
-
-        @Override
-        protected void doInBackground() {
-            Log.d(TAG, ">>>");
-            try {
-                Process dvblast = ProcessUtils.runBinary(StreamActivity.this, DVBLAST,
-                        "-U", "-a0", "-O5000", "-r", DVBLAST_SOCKET,
-                        "-xxml", "-c", mConfigFile.getAbsolutePath(),
-                        "-f" + mFreq, "-q");
-                Integer exitCode = null;
-                while (!isCancelled() &&
-                        (exitCode = ProcessUtils.checkExitCode(dvblast)) == null) {
-                    try {
-                        int read = 0;
-                        String str;
-                        // handle dvblast info
-                        str = StringUtils.readAll(dvblast.getInputStream());
-                        if (str.length() > 0) {
-                            read += str.length();
-                            // TODO parse DOM and handle
-                        }
-                        // read error log
-                        str = StringUtils.readAll(dvblast.getErrorStream());
-                        if (str.length() > 0) {
-                            read += str.length();
-                            mErrorLogger.write(str);
-                        }
-                        // zzZZzzz
-                        if (read == 0) {
-                            Thread.sleep(250);
-                        }
-                    } catch (Throwable t) {
-                        break;
-                    }
-                }
-                if (exitCode == null) {
-                    Log.d(TAG, "dvblast destroying");
-                    ProcessUtils.terminate(dvblast);
-                    Log.d(TAG, "dvblast destroyed");
-                } else if (exitCode != 0) {
-                    // FIXME localization
-                    Log.e(TAG, "dvblast failed (" + exitCode + ")");
-                    Log.d(TAG, ProcessUtils.readStdOut(dvblast));
-                    Log.d(TAG, ProcessUtils.readErrOut(dvblast));
-                }
-                removeSocketFile();
-            } catch (Throwable t) {
-                Log.e(TAG, "dvblast", t);
-            }
-            Log.d(TAG, "<<<");
-        }
-    }
-
-    private static int tryParseInt(String str, String paramName)
-            throws IOException {
-        try {
-            return Integer.parseInt(str);
-        } catch (NumberFormatException e) {
-            throw new IOException(
-                    "error while parsing " + paramName + " (" + str + ")");
-        }
     }
 
     private void updateTitle() {
