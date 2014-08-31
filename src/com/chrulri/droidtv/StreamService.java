@@ -53,7 +53,7 @@ public class StreamService extends Service {
                 // run dvblast
                 Log.d(TAG, "dvblast(" + configFile + "," + freq + ")");
                 dvblast = ProcessUtils.runBinary(StreamService.this, DVBLAST,
-                		"-a0", "-O5000", "-r", DVBLAST_SOCKET,
+                		"-r", DVBLAST_SOCKET,
                 		"-xxml", "-c", configFile.getAbsolutePath(),
                         "-f" + freq, "-q");
                 Toast.makeText(this, "StreamService Started. Open rtp://217.0.0.1:1555 on player", Toast.LENGTH_LONG).show();

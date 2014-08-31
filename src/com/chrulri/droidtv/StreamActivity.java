@@ -22,6 +22,7 @@ import static com.chrulri.droidtv.utils.StringUtils.NEWLINE;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -176,6 +177,9 @@ public class StreamActivity extends Activity {
         String[] params = mChannelConfig.split(":");
         mChannelName = params[0];
         updateTitle();
+        Uri uriUrl = Uri.parse("rtp://127.0.0.1:1555");
+        Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
+        startActivity(launchBrowser);
     }
 
     @Override
