@@ -27,8 +27,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.VideoView;
 
+import com.chrulri.droidtv.ScanActivity.AsyncScanTask;
 import com.chrulri.droidtv.utils.ErrorUtils;
 import com.chrulri.droidtv.utils.ParallelTask;
 import com.chrulri.droidtv.utils.ProcessUtils;
@@ -66,11 +70,13 @@ import javax.xml.parsers.ParserConfigurationException;
  * ;hb=350557c669ce3670b7ea1e252b11f261c0610239}
  */
 
-public class StreamActivity extends Activity {
+public class StreamActivity extends Activity implements OnClickListener{
     private static final String TAG = (StreamActivity.class.getSimpleName()+"caramba");
 
     static final int DVBLAST = R.raw.dvblast_2_1_0;
     static final int DVBLASTCTL = R.raw.dvblastctl_2_1_0;
+    
+    private Button streamButton;
 
     public static final String EXTRA_CHANNELCONFIG = "channelconfig";
 
@@ -139,6 +145,8 @@ public class StreamActivity extends Activity {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.stream);
+        streamButton = (Button) findViewById(R.id.button1);
+        streamButton.setOnClickListener(this);
         mChannelConfig = getIntent().getStringExtra(EXTRA_CHANNELCONFIG);
         mVideoView = (VideoView) findViewById(R.id.stream_video);
         mVideoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
@@ -172,14 +180,15 @@ public class StreamActivity extends Activity {
         intent.putExtra(StreamService.EXTRA_CHANNELCONFIG, mChannelConfig);
         removeSocketFile();
         startService(intent);
-        mDvblastCtlTask = new AsyncDvblastCtlTask();
-        mDvblastCtlTask.execute();
-        String[] params = mChannelConfig.split(":");
-        mChannelName = params[0];
-        updateTitle();
-        Uri uriUrl = Uri.parse("rtp://127.0.0.1:1555");
-        Intent launchBrowser = new Intent(Intent.ACTION_VIEW, uriUrl);
-        startActivity(launchBrowser);
+        //mDvblastCtlTask = new AsyncDvblastCtlTask();
+        //mDvblastCtlTask.execute();
+        //String[] params = mChannelConfig.split(":");
+        //mChannelName = params[0];
+        //updateTitle();
+        /*Uri uriUrl = Uri.parse("http://127.0.0.1:1234/bynumber/1");
+        Intent launchBrowser = new Intent(Intent.ACTION_VIEW);
+        launchBrowser.setDataAndType(uriUrl, "video/mpeg");
+        startActivity(launchBrowser);*/
     }
 
     @Override
@@ -194,6 +203,15 @@ public class StreamActivity extends Activity {
         super.onDestroy();
         ProcessUtils.finishTask(mDvblastCtlTask, false);
         stopService(new Intent(this, StreamService.class));
+    }
+    @Override
+    public void onClick(View v) {
+        if (v == streamButton) {
+        	Uri uriUrl = Uri.parse("http://127.0.0.1:1234/bynumber/1");
+            Intent launchBrowser = new Intent(Intent.ACTION_VIEW);
+            launchBrowser.setDataAndType(uriUrl, "video/mpeg");
+            startActivity(launchBrowser);
+        }
     }
 
     /**
