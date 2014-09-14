@@ -10,10 +10,11 @@
         android:layout_height="wrap_content"
         android:text="@string/stream" />
 
-    <VideoView
-        android:id="@+id/stream_video"
+    <TextView
+        android:id="@+id/textView1"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:keepScreenOn="true" />
+        android:layout_height="0dp"
+        android:layout_weight="0.33"
+        android:text="@string/status" />
 
 </LinearLayout>

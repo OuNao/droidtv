@@ -287,8 +287,7 @@ public class ChannelsActivity extends Activity {
             publishProgress(CHECK_DEVICE);
             // kill old instance if still running
             try {
-                ProcessUtils.killBinary(getApplicationContext(), StreamActivity.DVBLAST);
-                ProcessUtils.killBinary(getApplicationContext(), StreamActivity.DVBLASTCTL);
+                ProcessUtils.killBinary(getApplicationContext(), StreamService.MUMUDVB);
             } catch (IOException e) {
                 Log.w(TAG, "kill previous instances", e);
             }

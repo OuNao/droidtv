@@ -62,7 +62,7 @@ public class ScanActivity extends Activity implements OnClickListener,
                     "AF", "AFGHANISTAN"
             },
             {
-                    "AX", "ÅLAND ISLANDS"
+                    "AX", "ï¿½LAND ISLANDS"
             },
             {
                     "AL", "ALBANIA"
@@ -218,7 +218,7 @@ public class ScanActivity extends Activity implements OnClickListener,
                     "CR", "COSTA RICA"
             },
             {
-                    "CI", "CÔTE D'IVOIRE"
+                    "CI", "Cï¿½TE D'IVOIRE"
             },
             {
                     "HR", "CROATIA"
@@ -596,7 +596,7 @@ public class ScanActivity extends Activity implements OnClickListener,
                     "QA", "QATA"
             },
             {
-                    "RE", "RÉUNION"
+                    "RE", "Rï¿½UNION"
             },
             {
                     "RO", "ROMANIA"
@@ -608,7 +608,7 @@ public class ScanActivity extends Activity implements OnClickListener,
                     "RW", "RWANDA"
             },
             {
-                    "BL", "SAINT BARTHÉLEMY"
+                    "BL", "SAINT BARTHï¿½LEMY"
             },
             {
                     "SH", "SAINT HELENA"
@@ -979,11 +979,14 @@ public class ScanActivity extends Activity implements OnClickListener,
                                     buf.append(':');
                                     buf.append(params[12]); // sid
                                     break;
+							    default:
+								    break;
                             }
                             buf.append('\n');
                         }
                         FileOutputStream out = new FileOutputStream(_outFile);
                         out.write(buf.toString().getBytes());
+                        out.close();
                     } catch (IOException e) {
                         // TODO localize error
                         ErrorUtils.error(ScanActivity.this, "failed to save channels file", e);

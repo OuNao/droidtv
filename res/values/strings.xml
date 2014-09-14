@@ -52,5 +52,5 @@
 This application *NEEDS* a working DVB device, plugged into your Android device and set up with drivers, firmware and correct permissions.
 Make sure that these prerequirements are met and try again.</string>
     <string name="stream">Open video player</string>
-
+    <string name="status">Reception Status</string>
 </resources>

@@ -16,16 +16,8 @@ import android.widget.Toast;
 public class StreamService extends Service {
 	public static final String EXTRA_CHANNELCONFIG = "channelconfig";
 	private String channelconfig;
-    private static final String TAG = (StreamActivity.class.getSimpleName()+"caramba");
+    private static final String TAG = (StreamActivity.class.getSimpleName());
 
-    static final int DVBLAST = R.raw.dvblast_2_1_0;
-    static final String UDP_IP = "127.0.0.1";
-    static final int UDP_PORT = 1555;
-    static final String DVBLAST_CONFIG_CONTENT = UDP_IP + ":" + UDP_PORT + " 1 %d";
-    static final String DVBLAST_CONFIG_FILENAME = "dvblast.conf";
-    static final String DVBLAST_SOCKET = "droidtv.socket";
-    private Process dvblast;
-    
     static final int MUMUDVB = R.raw.mumudvb;
     static final String MUMUDVB_CONFIG_CONTENT = "freq=%d\ndelivery_system=DVBT\nmulticast_ipv4=0\nunicast=1\nport_http=1234\nip_http=0.0.0.0\nautoconfiguration=full\nautoconf_sid_list=%d\n";
     static final String MUMUDVB_CONFIG_FILENAME = "mumudvb.conf";
@@ -36,7 +28,7 @@ public class StreamService extends Service {
 		channelconfig = intent.getStringExtra(EXTRA_CHANNELCONFIG);
 	    //TODO do something useful
 		try {
-            Log.d(TAG, ">>> startStream2(" + channelconfig + ")");
+            Log.d(TAG, ">>> startStream(" + channelconfig + ")");
             try {
                 // config file
                 File configFile = new File(getCacheDir(), MUMUDVB_CONFIG_FILENAME);
@@ -54,18 +46,18 @@ public class StreamService extends Service {
                 // print config
                 writer.println(String.format(MUMUDVB_CONFIG_CONTENT, freq/1000000, sid));
                 writer.close();
-                // run dvblast
-                Log.d(TAG, "dvblast(" + configFile + "," + freq + ")");
+                // run mumudvb
+                Log.d(TAG, "mumudvb(" + configFile + "," + freq + ")");
                 mumudvb = ProcessUtils.runBinary(StreamService.this, MUMUDVB,
                 		"-d", "-c", configFile.getAbsolutePath());
-                Toast.makeText(this, "StreamService Started. Open http://127.0.0.1:1234/bynumber/1 on player", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "StreamService Started. Open " + "http://127.0.0.1:1234/bysid/" + params[2] + " on player", Toast.LENGTH_LONG).show();
             } catch (IOException e) {
                 Log.e(TAG, "starting stream failed", e);
                 //ErrorUtils.error(this, "failed to start streaming", e);
                 this.stopSelf();
             }
         } finally {
-            Log.d(TAG, "<<< startStream2");
+            Log.d(TAG, "<<< startStream");
         }
 		return Service.START_NOT_STICKY;
 	}
@@ -78,10 +70,10 @@ public class StreamService extends Service {
 	
 	@Override
 	public void onDestroy() {
-	    Log.d(TAG, ">>> stopStream2");
+	    Log.d(TAG, ">>> stopStream");
         ProcessUtils.terminate(mumudvb);
         Toast.makeText(this, "StreamService Destroyed", Toast.LENGTH_LONG).show();
-        Log.d(TAG, "<<< stopStream2");
+        Log.d(TAG, "<<< stopStream");
 	}
 
 	private static int tryParseInt(String str, String paramName)
