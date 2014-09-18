@@ -210,20 +210,33 @@ public class StreamActivity extends Activity implements OnClickListener{
 
     private void addNotification() {
     	NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
-    	Intent resultIntent = new Intent(this, stopserviceActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addParentStack(stopserviceActivity.class);
+    	Intent resultIntent = new Intent(this, StreamActivity.class);
+    	resultIntent.putExtra(StreamActivity.EXTRA_CHANNELCONFIG, mChannelConfig);
+    	TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addParentStack(StreamActivity.class);
         stackBuilder.addNextIntent(resultIntent);
         PendingIntent resultPendingIntent =
            stackBuilder.getPendingIntent(
               0,
+              PendingIntent.FLAG_UPDATE_CURRENT);
+    	
+        mBuilder.setContentIntent(resultPendingIntent);
+        
+     	Intent actionIntent = new Intent(this, stopserviceActivity.class);
+        TaskStackBuilder stackBuilder2 = TaskStackBuilder.create(this);
+        stackBuilder2.addParentStack(stopserviceActivity.class);
+        stackBuilder2.addNextIntent(actionIntent);
+        PendingIntent actionPendingIntent =
+           stackBuilder2.getPendingIntent(
+              0,
               PendingIntent.FLAG_UPDATE_CURRENT
            );
-        mBuilder.setContentIntent(resultPendingIntent);
+    	mBuilder.addAction(R.drawable.ic_notif, "Stop service", actionPendingIntent);
+        
     	mBuilder.setAutoCancel(true);
         mBuilder.setSmallIcon(R.drawable.ic_launcher);
         mBuilder.setTicker("Streaming service running");
-        mBuilder.setContentTitle("Channel streaming service running. Touch to stop service");
+        mBuilder.setContentTitle("Channel streaming service running");
         mBuilder.setContentText("open http://127.0.0.1:1234/bysid/" + mSid + " on player to view the channel");
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(notificationID, mBuilder.build());

@@ -26,7 +26,6 @@ public class StreamService extends Service {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		channelconfig = intent.getStringExtra(EXTRA_CHANNELCONFIG);
-	    //TODO do something useful
 		try {
             Log.d(TAG, ">>> startStream(" + channelconfig + ")");
             try {
